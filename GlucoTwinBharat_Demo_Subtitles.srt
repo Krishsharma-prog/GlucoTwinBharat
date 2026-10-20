@@ -1,0 +1,739 @@
+1
+00:00:00,000 --> 00:00:09,730
+Welcome to GlucoTwin Bharat, an Indian meal-aware, personalized
+glucose Digital Twin proof of concept for the Happiest Health
+
+2
+00:00:09,730 --> 00:00:22,240
+In this walkthrough I will explain the problem, show how historical
+patient records and dynamic readings are combined, describe the
+
+3
+00:00:22,240 --> 00:00:32,897
+We focus on a narrow target: forecasting glucose over the next two
+hours and estimating whether a configurable high-glucose threshold
+
+4
+00:00:32,897 --> 00:00:40,773
+The prototype is built around React, a FastAPI backend, synthetic
+patient records, and machine-learning models in Python.
+
+5
+00:00:40,773 --> 00:00:48,187
+Throughout this video, every patient and sensor record shown is
+fictional and generated for software demonstration.
+
+6
+00:00:48,187 --> 00:00:57,917
+The results are not clinically validated, and the prototype must not
+be used for diagnosis, treatment, medication decisions, or emergency
+
+7
+00:00:57,917 --> 00:01:03,477
+I will distinguish what is implemented from what would require
+further validation.
+
+8
+00:01:03,868 --> 00:01:17,198
+The problem we are exploring is that a historical chart shows what
+has already happened, while a useful Digital Twin should update as
+
+9
+00:01:17,198 --> 00:01:18,918
+Glucose response is personal.
+
+10
+00:01:18,918 --> 00:01:27,948
+Two people can respond differently to a similar meal because their
+medical history, current readings, sleep, activity, and other
+
+11
+00:01:27,948 --> 00:01:33,538
+This prototype does not claim to solve clinical glucose forecasting
+for real patients.
+
+12
+00:01:33,538 --> 00:01:46,438
+Instead, it demonstrates the engineering pattern required to explore
+it: maintain a virtual patient, fuse separate sources of context,
+
+13
+00:01:46,438 --> 00:01:52,458
+The modeled outcome is a possible elevated-glucose excursion within
+one hundred and twenty minutes.
+
+14
+00:01:52,458 --> 00:02:02,778
+The goal for a jury is to evaluate a working pipeline rather than a
+static user interface or an unsupported claim about medical
+
+15
+00:02:03,170 --> 00:02:08,562
+A Digital Twin is more than a dashboard or a single risk score.
+
+16
+00:02:08,562 --> 00:02:15,614
+In this project, the virtual patient begins with a synthetic
+historical profile and a baseline glucose value.
+
+17
+00:02:15,614 --> 00:02:20,591
+The twin also has a timestamped sequence of glucose and lifestyle
+observations.
+
+18
+00:02:20,591 --> 00:02:24,739
+When a new simulated observation arrives, the current state changes.
+
+19
+00:02:24,739 --> 00:02:28,888
+The forecast can then be recomputed using the updated values.
+
+20
+00:02:28,888 --> 00:02:36,354
+This makes the system stateful: the same patient can have a
+different current state at a later timestamp.
+
+21
+00:02:36,354 --> 00:02:43,406
+The dashboard exposes both the observed part of the timeline and the
+predicted part of the timeline.
+
+22
+00:02:43,406 --> 00:02:49,214
+It also allows hypothetical inputs to be varied so the evaluator can
+compare outputs.
+
+23
+00:02:49,214 --> 00:03:00,414
+These features demonstrate a Digital Twin workflow, while the simple
+synthetic response generator and the model remain engineering
+
+24
+00:03:00,805 --> 00:03:09,508
+The project is designed around familiar Indian meal examples such as
+poha, idli, dosa, roti with dal, and rice with sabzi.
+
+25
+00:03:09,508 --> 00:03:14,896
+These are scenario labels that make the interaction understandable
+to a local audience.
+
+26
+00:03:14,896 --> 00:03:24,428
+The prototype asks for an explicit estimated carbohydrate amount
+rather than assuming that every plate of a dish has a fixed
+
+27
+00:03:24,428 --> 00:03:30,230
+Portion size and recipe can vary substantially, so the values are
+illustrative parameters only.
+
+28
+00:03:30,230 --> 00:03:33,545
+The meal selector is not providing nutrition advice.
+
+29
+00:03:33,545 --> 00:03:41,005
+Its purpose is to let a reviewer change an input and see whether the
+software updates its forecast.
+
+30
+00:03:41,005 --> 00:03:51,780
+That is a clear, testable use case: choose a fictional patient,
+enter a hypothetical meal, run the scenario, and inspect the
+
+31
+00:03:51,780 --> 00:04:00,483
+A scenario difference indicates model sensitivity under these
+assumptions; it does not prove that a real-world intervention would
+
+32
+00:04:00,875 --> 00:04:03,785
+The dataset has two explicit streams.
+
+33
+00:04:03,785 --> 00:04:09,607
+The first is the electronic health record, stored as a JSON file.
+
+34
+00:04:09,607 --> 00:04:21,736
+It includes six fictional patients, age, sex, body mass index, a
+simulated diagnosis, a baseline glucose value, an illustrative HbA1c
+
+35
+00:04:21,736 --> 00:04:27,072
+The second stream is a CSV time series with timestamped
+observations.
+
+36
+00:04:27,072 --> 00:04:35,319
+It includes glucose, meal events and carbohydrate estimates, recent
+step count, sleep duration, and an activity label.
+
+37
+00:04:35,319 --> 00:04:41,626
+The seeded observation data cover a day of five-minute intervals per
+virtual patient.
+
+38
+00:04:41,626 --> 00:04:49,388
+There are no names of real patients, no imported clinical records,
+and no actual wearable connection.
+
+39
+00:04:49,388 --> 00:04:53,270
+The application combines these streams at forecast time.
+
+40
+00:04:53,270 --> 00:05:05,397
+That separation is important because historical profile information
+and the latest observed state have different meanings and should
+
+41
+00:05:05,789 --> 00:05:17,441
+The forecasting module uses four Random Forest regression models,
+one for each horizon: fifteen, thirty, sixty, and one hundred and
+
+42
+00:05:17,441 --> 00:05:23,014
+Training examples are generated from a transparent, stylized
+synthetic response process.
+
+43
+00:05:23,014 --> 00:05:37,198
+Features include current glucose, a baseline value, synthetic HbA1c
+and BMI, age, estimated carbohydrates, time since meal, recent
+
+44
+00:05:37,198 --> 00:05:42,264
+The output is a predicted glucose value for each horizon.
+
+45
+00:05:42,264 --> 00:05:48,850
+The interface also reports the spread across trees and a model-only
+threshold-crossing signal.
+
+46
+00:05:48,850 --> 00:05:52,903
+That signal is not a calibrated clinical probability.
+
+47
+00:05:52,903 --> 00:06:04,049
+Random Forests were selected because they are relatively
+straightforward to train quickly and can be inspected and evaluated
+
+48
+00:06:04,049 --> 00:06:09,621
+More complex models would not automatically make the product more
+reliable.
+
+49
+00:06:09,621 --> 00:06:14,181
+External validation and good data quality would matter more.
+
+50
+00:06:14,572 --> 00:06:17,370
+Here is the twin update loop.
+
+51
+00:06:17,370 --> 00:06:21,099
+First, the application loads the patient's historical profile.
+
+52
+00:06:21,099 --> 00:06:32,290
+Second, it reads recent timestamped observations and derives a
+current glucose estimate, a recent trend, time since the last meal,
+
+53
+00:06:32,290 --> 00:06:35,554
+Third, the current virtual state is refreshed.
+
+54
+00:06:35,554 --> 00:06:39,750
+Fourth, the model generates the next four forecast points.
+
+55
+00:06:39,750 --> 00:06:43,947
+Fifth, those predictions are displayed alongside the observed
+series.
+
+56
+00:06:43,947 --> 00:06:50,941
+Finally, a user can append another synthetic sensor point or compare
+a hypothetical meal scenario.
+
+57
+00:06:50,941 --> 00:06:59,334
+The five-minute advance action changes the in-memory observation
+state, after which the current profile and forecast are refreshed.
+
+58
+00:06:59,334 --> 00:07:08,659
+If the backend restarts, that simulated stream returns to the seed
+data because it is not persisted in a database.
+
+59
+00:07:08,659 --> 00:07:12,390
+This is a deliberate simplification for a prototype.
+
+60
+00:07:12,390 --> 00:07:22,181
+A production twin would require durable storage, timestamp
+validation, device connectivity, monitoring, and robust handling of
+
+61
+00:07:22,572 --> 00:07:30,596
+The architecture has a React and Vite frontend, a Python FastAPI
+backend, and a local synthetic dataset.
+
+62
+00:07:30,596 --> 00:07:37,203
+The frontend is responsible for patient selection, charts, scenario
+inputs, and showing model outputs.
+
+63
+00:07:37,203 --> 00:07:52,778
+The API provides endpoints to retrieve the patient list, get one
+synthetic EHR record, read observations, append a simulated reading,
+
+64
+00:07:52,778 --> 00:07:56,554
+The model code uses NumPy, pandas, and scikit-learn.
+
+65
+00:07:56,554 --> 00:08:02,690
+Seed data and the source code are stored alongside the documentation
+for reproducibility.
+
+66
+00:08:02,690 --> 00:08:07,882
+The application can be run locally without a paid cloud service.
+
+67
+00:08:07,882 --> 00:08:17,321
+This is not a production deployment: authentication, hardened access
+controls, encrypted storage, and a real clinical database are not
+
+68
+00:08:17,321 --> 00:08:23,929
+The local development API should not be exposed publicly with any
+real patient information.
+
+69
+00:08:24,320 --> 00:08:28,126
+The dashboard brings the main pieces into one view.
+
+70
+00:08:28,126 --> 00:08:37,430
+At the top are summary cards for the latest glucose observation, the
+sixty-minute estimate, the synthetic HbA1c value, and the model
+
+71
+00:08:37,430 --> 00:08:42,928
+The central chart shows the recent observed trajectory and a forward
+forecast section.
+
+72
+00:08:42,928 --> 00:08:46,734
+A threshold line provides context for the excursion target.
+
+73
+00:08:46,734 --> 00:08:51,386
+On the right, the patient profile makes the historical baseline
+visible.
+
+74
+00:08:51,386 --> 00:08:56,883
+Lower panels summarize the dynamic stream, the forecast horizons,
+and the what-if controls.
+
+75
+00:08:56,883 --> 00:08:59,844
+The purpose of this layout is transparency.
+
+76
+00:08:59,844 --> 00:09:10,417
+A reviewer should be able to see which patient was selected, which
+information is historical, which values are current, and which
+
+77
+00:09:10,417 --> 00:09:16,337
+The visual dashboard is a walkthrough view of the data model and
+intended interaction.
+
+78
+00:09:16,337 --> 00:09:24,372
+The submitted source includes the React frontend; the visuals in
+this generated narration are not a clinical product screenshot.
+
+79
+00:09:24,763 --> 00:09:30,777
+For the patient example, we select the fictional identifier GTB zero
+zero two.
+
+80
+00:09:30,777 --> 00:09:42,341
+The record includes an age and sex field, body mass index, a
+simulated type two diabetes description, a baseline glucose value,
+
+81
+00:09:42,341 --> 00:09:46,504
+The observations table is separate from the EHR profile.
+
+82
+00:09:46,504 --> 00:09:53,905
+Each row has a timestamp, a glucose value, recent steps, sleep
+duration, and optional meal information.
+
+83
+00:09:53,905 --> 00:10:03,157
+This separation lets us ask whether the same baseline profile can be
+updated over time as the observation stream changes.
+
+84
+00:10:03,157 --> 00:10:11,020
+The synthetic record is designed to exercise software behavior
+rather than represent a real person's medical history.
+
+85
+00:10:11,020 --> 00:10:15,183
+No identifying details or real-world clinical data are present.
+
+86
+00:10:15,183 --> 00:10:29,060
+In an actual clinical setting, access to health records would
+require appropriate authorization, privacy protection, access
+
+87
+00:10:29,451 --> 00:10:37,876
+After requesting the forecast, the backend returns points at
+fifteen, thirty, sixty, and one hundred and twenty minutes.
+
+88
+00:10:37,876 --> 00:10:48,171
+The demo also displays the input context, including latest glucose,
+recent slope, meal carbohydrate amount, elapsed time since meal,
+
+89
+00:10:48,171 --> 00:10:55,191
+In this captured example the forecast values are generated from the
+project's synthetic training process.
+
+90
+00:10:55,191 --> 00:11:00,339
+They should be read as engineering outputs, not as health advice.
+
+91
+00:11:00,339 --> 00:11:15,316
+The model's ensemble spread provides an additional descriptive
+signal, but it is not a full uncertainty interval and does not
+
+92
+00:11:15,316 --> 00:11:17,656
+The high-glucose threshold is configurable.
+
+93
+00:11:17,656 --> 00:11:32,631
+Any system intended for clinical use would need a carefully
+justified target definition, calibration, subgroup error analysis,
+
+94
+00:11:33,023 --> 00:11:44,000
+The evaluation report compares each Random Forest forecast against a
+simple persistence baseline, which assumes the future value remains
+
+95
+00:11:44,000 --> 00:11:50,148
+It reports mean absolute error and root mean squared error in
+milligrams per deciliter.
+
+96
+00:11:50,148 --> 00:12:00,686
+The evaluation uses seven thousand two hundred synthetic training
+rows, one thousand eight hundred synthetic test rows, and twenty
+
+97
+00:12:00,686 --> 00:12:07,272
+The split is grouped by virtual patient to reduce leakage between
+training and test partitions.
+
+98
+00:12:07,272 --> 00:12:13,859
+In this generated dataset, the Random Forest has lower error than
+persistence at each horizon.
+
+99
+00:12:13,859 --> 00:12:23,080
+That is useful evidence that the code pipeline can learn the
+synthetic generator's patterns and that the comparison metric is
+
+100
+00:12:23,080 --> 00:12:25,276
+It is not clinical accuracy.
+
+101
+00:12:25,276 --> 00:12:32,740
+Because the training and test targets share the same simulation
+assumptions, these numbers cannot establish real-world
+
+102
+00:12:32,740 --> 00:12:35,375
+The report states that limitation directly.
+
+103
+00:12:35,766 --> 00:12:44,403
+The scenario lab lets the evaluator choose a meal, set an estimated
+carbohydrate quantity, and include recent activity and sleep values.
+
+104
+00:12:44,403 --> 00:12:51,806
+The backend produces one baseline forecast with no newly specified
+meal and another forecast with the hypothetical scenario.
+
+105
+00:12:51,806 --> 00:12:57,153
+It returns the predicted values at each horizon and a difference
+between them.
+
+106
+00:12:57,153 --> 00:13:04,968
+In this example, the displayed numbers are produced by the same
+synthetic-trained model, using the virtual patient's current state.
+
+107
+00:13:04,968 --> 00:13:15,250
+The important point is that the scenario is tied to that patient and
+that current data context; it is not just a universal response
+
+108
+00:13:15,250 --> 00:13:18,951
+However, changing the model inputs does not prove causation.
+
+109
+00:13:18,951 --> 00:13:28,000
+The difference does not show that a real meal choice or activity
+level would produce the same result for an actual person.
+
+110
+00:13:28,000 --> 00:13:34,581
+The user interface therefore labels the comparison as a model-only
+what-if result and avoids treatment instructions.
+
+111
+00:13:34,972 --> 00:13:38,962
+The backend is inspectable through FastAPI's interactive
+documentation.
+
+112
+00:13:38,962 --> 00:13:44,947
+A health endpoint reports service status and makes the
+synthetic-data mode explicit.
+
+113
+00:13:44,947 --> 00:13:51,430
+The patient endpoints return the fictional patient list and one
+patient's historical profile.
+
+114
+00:13:51,430 --> 00:13:55,420
+The observations endpoint returns recent time series records.
+
+115
+00:13:55,420 --> 00:13:59,909
+The simulation endpoint adds a five-minute observation in memory.
+
+116
+00:13:59,909 --> 00:14:04,897
+The forecast endpoint returns the predicted points and input
+context.
+
+117
+00:14:04,897 --> 00:14:09,384
+The scenario endpoint returns both baseline and scenario forecasts.
+
+118
+00:14:09,384 --> 00:14:13,375
+The metrics endpoint exposes the synthetic model evaluation.
+
+119
+00:14:13,375 --> 00:14:18,362
+These endpoints make the workflow testable independently of the UI.
+
+120
+00:14:18,362 --> 00:14:27,838
+The project's tests exercise the basic API behaviors, including
+profile retrieval, observation access, forecasting, scenario
+
+121
+00:14:27,838 --> 00:14:44,297
+Before external submission, the developer should run the clean setup
+steps, rerun the tests, check the public repository links, and
+
+122
+00:14:44,688 --> 00:14:50,965
+The repository is organized so a reviewer can locate the main parts
+quickly.
+
+123
+00:14:50,965 --> 00:14:57,243
+The frontend directory contains the React application, chart
+component, API client, and styling.
+
+124
+00:14:57,243 --> 00:15:06,418
+The backend directory contains the FastAPI routes, schemas,
+twin-state logic, forecasting model, synthetic data generator, and
+
+125
+00:15:06,418 --> 00:15:09,316
+The backend tests cover key endpoints.
+
+126
+00:15:09,316 --> 00:15:18,008
+The documentation directory contains the architecture diagram,
+presentation, model card, evaluation report, demonstration script,
+
+127
+00:15:18,008 --> 00:15:27,665
+The root README explains the problem statement, use case, technical
+stack, local setup, endpoints, model method, data provenance, and
+
+128
+00:15:27,665 --> 00:15:30,080
+An MIT license is included.
+
+129
+00:15:30,080 --> 00:15:43,601
+The repository should be made public before submission, and the
+presenter should open the final links from an incognito browser to
+
+130
+00:15:43,601 --> 00:15:51,810
+A demo URL should be added to the README only after the real video
+has been uploaded.
+
+131
+00:15:52,202 --> 00:15:55,431
+Responsible use is central to this project.
+
+132
+00:15:55,431 --> 00:15:58,661
+All seed patients and observations are synthetic.
+
+133
+00:15:58,661 --> 00:16:06,965
+The application does not connect to a continuous glucose monitor and
+it does not ingest real health records.
+
+134
+00:16:06,965 --> 00:16:12,502
+It is not validated for diagnosis, treatment, medication decisions,
+or emergency use.
+
+135
+00:16:12,502 --> 00:16:20,806
+The ensemble frequency shown by the interface is uncalibrated and
+should not be described as a medical probability.
+
+136
+00:16:20,806 --> 00:16:29,572
+The scenario comparison is not evidence that changing a meal or
+exercise pattern will cause a particular glucose outcome.
+
+137
+00:16:29,572 --> 00:16:34,648
+There is no production authentication, authorization, audit system,
+or encrypted database.
+
+138
+00:16:34,648 --> 00:16:46,182
+If the approach were developed further, it would need independent
+data, clinician review, prospective validation, security and privacy
+
+139
+00:16:46,182 --> 00:16:55,870
+In the current prototype, using synthetic data is the correct way to
+demonstrate the pipeline without exposing real people's health
+
+140
+00:16:56,262 --> 00:17:02,878
+The next stage would start with better evidence, not a more
+complicated model.
+
+141
+00:17:02,878 --> 00:17:12,548
+First, evaluate against an appropriately licensed and documented
+real-world research dataset, with participant-level separation
+
+142
+00:17:12,548 --> 00:17:22,217
+Second, define the clinical target and operating thresholds with
+domain experts rather than choosing them only for visual effect.
+
+143
+00:17:22,217 --> 00:17:29,851
+Third, measure calibration, performance across patient subgroups,
+missing-data behavior, and the consequences of false alerts.
+
+144
+00:17:29,851 --> 00:17:36,468
+Fourth, add privacy controls, authentication, reliable storage,
+audit logging, and secure deployment practices.
+
+145
+00:17:36,468 --> 00:17:42,066
+Fifth, plan a supervised prospective study before considering any
+clinical use.
+
+146
+00:17:42,066 --> 00:17:50,717
+A future version could also integrate a real device stream, but only
+after authorization and data-quality checks.
+
+147
+00:17:50,717 --> 00:17:53,771
+The current build is intentionally narrow.
+
+148
+00:17:53,771 --> 00:18:03,950
+It demonstrates a technical foundation and a testable use case; it
+does not replace validation, medical supervision, or clinical
+
+149
+00:18:04,341 --> 00:18:11,747
+To conclude, GlucoTwin Bharat demonstrates a complete software
+concept for a meal-aware glucose Digital Twin.
+
+150
+00:18:11,747 --> 00:18:24,584
+It fuses a synthetic historical profile with dynamic timestamped
+observations, updates a virtual patient state, predicts glucose at
+
+151
+00:18:24,584 --> 00:18:32,978
+It provides a dashboard concept, a FastAPI interface, synthetic
+evaluation metrics, reproducible seed files, tests, and
+
+152
+00:18:32,978 --> 00:18:38,409
+Its most important contribution is not a claim of medical accuracy.
+
+153
+00:18:38,409 --> 00:18:47,790
+It is the inspectable flow from historical records to a changing
+twin and then to an explicitly qualified forecast.
+
+154
+00:18:47,790 --> 00:18:58,652
+The current limitations are equally important: there is no real
+sensor connection, no clinical dataset, no prospective validation,
+
+155
+00:18:58,652 --> 00:19:03,096
+Thank you for watching this walkthrough of GlucoTwin Bharat.
+
+156
+00:19:03,096 --> 00:19:15,439
+The source code and documentation should be reviewed alongside the
+demo, and any real-world extension must begin with appropriate

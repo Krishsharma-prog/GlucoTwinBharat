@@ -1,0 +1,9 @@
+flowchart LR
+  EHR["Synthetic EHR<br/>patients.json"] --> MERGE["Twin State Builder<br/>patient-specific features"]
+  CGM["Synthetic CGM + lifestyle<br/>observations.csv / simulated stream"] --> MERGE
+  MERGE --> API["FastAPI REST API"]
+  API --> MODEL["Scikit-learn Random Forests<br/>15 / 30 / 60 / 120 min"]
+  MODEL --> EVENT["Glucose trajectory +<br/>threshold excursion signal"]
+  EVENT --> UI["React + Vite dashboard"]
+  UI --> SCENARIO["Meal/activity what-if simulator"]
+  SCENARIO --> API
